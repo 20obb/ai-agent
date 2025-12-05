@@ -1,0 +1,136 @@
+providers:
+  openai:
+    enabled: false            # Set to true when you add OPENAI_API_KEY
+    api_key_env: OPENAI_API_KEY
+    base_url: https://api.openai.com/v1
+    models:
+      gpt4o-mini:
+        name: gpt-4o-mini
+        supports_tools: true
+        supports_stream: true
+        max_context_tokens: 128000
+      gpt4o:
+        name: gpt-4o
+        supports_tools: true
+        supports_stream: true
+        max_context_tokens: 128000
+
+  perplexity:
+    enabled: true             # Perplexity is enabled and used mainly for ask mode
+    api_key_env: PERPLEXITY_API_KEY
+    base_url: https://api.perplexity.ai
+    models:
+      sonar-small:
+        # General-purpose model
+        name: sonar
+        supports_tools: false   # Do NOT use this model in agent mode (no JSON tools)
+        supports_stream: true
+        max_context_tokens: 32768
+      sonar-pro:
+        # More capable model (you are using this one)
+        name: sonar-pro
+        supports_tools: false   # Also ask-mode only in this setup
+        supports_stream: true
+        max_context_tokens: 65536
+      sonar-reasoning:
+        name: sonar-reasoning
+        supports_tools: false
+        supports_stream: true
+        max_context_tokens: 32768
+      sonar-deep-research:
+        name: sonar-deep-research
+        supports_tools: false
+        supports_stream: true
+        max_context_tokens: 65536
+
+  anthropic:
+    enabled: false            # Set to true when you add ANTHROPIC_API_KEY
+    api_key_env: ANTHROPIC_API_KEY
+    base_url: https://api.anthropic.com
+    models:
+      claude-3-haiku:
+        name: claude-3-haiku-20240307
+        supports_tools: true
+        supports_stream: true
+        max_context_tokens: 200000
+      claude-3-sonnet:
+        name: claude-3-sonnet-20240229
+        supports_tools: true
+        supports_stream: true
+        max_context_tokens: 200000
+      claude-3-opus:
+        name: claude-3-opus-20240229
+        supports_tools: true
+        supports_stream: true
+        max_context_tokens: 200000
+
+tools:
+  web_search:
+    enabled: true
+    # Optional: if you later add a search API, set:
+    # endpoint_env: SEARCH_API_ENDPOINT
+    # api_key_env: SEARCH_API_KEY
+
+  web_fetch:
+    enabled: true
+    # Optional HTTP fetch tool if you implement it
+    # timeout_seconds: 20
+
+  read_file:
+    enabled: true
+    # Full filesystem read access (as the current OS user).
+    # Be aware: this grants powerful read access to the agent.
+    root_dir: /
+
+  write_file:
+    enabled: true
+    # Full filesystem write access (as the current OS user).
+    # Be aware: the agent can modify any file it has permission for.
+    root_dir: /
+
+  shell:
+    enabled: true
+    # Working directory for shell commands. "/" means root of filesystem.
+    working_dir: /
+    # Empty list => no restriction inside ShellCommandTool (all commands allowed).
+    # This is equivalent to giving the agent a terminal as your user.
+    allowed_commands: []
+    # Optional default timeout (if your ShellCommandTool uses it)
+    # default_timeout: 15
+
+prompts:
+  ask_system: >
+    You are a helpful assistant. Answer the user's question clearly and concisely.
+    Do not claim to browse the web or execute tools in this mode.
+    You are allowed to use your own internal knowledge and reasoning, but you do not
+    have direct access to the user's filesystem or shell in ask mode.
+
+  agent_system: >
+    You are a tool-using AI agent running on the user's Linux machine.
+
+    You have access to these tools:
+    - shell_command: execute shell commands on the user's system
+      (with the same permissions as the current OS user).
+    - read_file: read arbitrary files from the filesystem within the configured root_dir.
+    - write_file: create or modify files on the filesystem within the configured root_dir.
+
+    When you decide that a tool is needed, you SHOULD respond with JSON ONLY,
+    in one of these forms:
+
+    1) To call a tool:
+       {
+         "tool": "shell_command",
+         "tool_input": {
+           "command": "free -h",
+           "timeout": 15
+         }
+       }
+
+    2) To provide a final answer (no more tool calls):
+       {
+         "tool": null,
+         "final_answer": "your explanation here"
+       }
+
+    If the user just wants a simple explanation and no tools are needed,
+    you may answer in natural language instead of JSON.
